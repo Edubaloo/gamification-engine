@@ -38,8 +38,7 @@ export DATABASE_URL="${APP_DB_DRIVER}://${APP_DB_USER}:${APP_DB_PASSWORD}@${APP_
 
 sleep 10
 
-if [ "$MODE" == "dev" ]
-then
+if [ "$MODE" == "dev" ]; then
   initialize_gengine_db development.ini admin_password=$ADMIN_PASSWORD admin_user=$ADMIN_USER
   uwsgi --lazy-apps --ini-paste development.uwsgi --py-autoreload=1
 else
