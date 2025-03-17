@@ -76,9 +76,11 @@ class RelationsLeaderBoardSubjectSet:
                     )
                 ))
         else:
-            q = q.where(
-                t_subjectrelations.c.deleted_at == None,
-            )
+            # Commenting out the deleted_at check as the column isn't defined in the SQLAlchemy model
+            # q = q.where(
+            #     t_subjectrelations.c.deleted_at == None,
+            # )
+            pass
 
         subjects += [x["to_id"] for x in DBSession.execute(q).fetchall()]
 

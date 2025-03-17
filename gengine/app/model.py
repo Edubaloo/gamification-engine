@@ -3,9 +3,6 @@
 
 import datetime
 import logging
-from collections import defaultdict
-from datetime import timedelta
-
 import hashlib
 import pytz
 import sqlalchemy.types as ty
@@ -813,7 +810,7 @@ class Subject(ABase):
 
         new_friends_set = set(relation_ids)
         existing_subjects_set = {x["id"] for x in DBSession.execute(select([t_subjects.c.id]).where(t_subjects.c.id.in_([subject_id, ] + relation_ids))).fetchall()}
-        existing_friends = {x["to_id"] for x in DBSession.execute(select([t_subjectrelations.c.to_id]).where(t_subjectrelations.c.from_id==subject_id)).fetchall()}
+        existing_friends = {x["to_id"] for x in DBSession.execute(select([t_subjectrelations.c.to_id]).where(t_subjectrelations.c.from_id == subject_id)).fetchall()}
         not_existing_friends = (new_friends_set-existing_subjects_set-{subject_id,})
         friends_to_append = ((new_friends_set - existing_friends) - not_existing_friends)
         friends_to_delete = ((existing_friends - new_friends_set) - not_existing_friends)
@@ -831,11 +828,15 @@ class Subject(ABase):
         pass
 
     @classmethod
-    def set_infos(cls, subject_id, lat, lng, timezone, language_id, additional_public_data):
+    def set_infos(cls, subject_id, lat, lng, timezone, language_id, additional_public_data, subjecttype_id=1):
         """set the subject's metadata like friends,location and timezone"""
 
         # add or select subject
         subject = DBSession.query(Subject).filter_by(id=subject_id).first()
+        if subject is None:
+            # Create a new subject if it doesn't exist
+            subject = Subject(id=subject_id, subjecttype_id=subjecttype_id)
+        
         subject.lat = lat
         subject.lng = lng
         subject.timezone = timezone
@@ -920,15 +921,13 @@ class Subject(ABase):
             WITH RECURSIVE nodes_cte(subject_id, name, part_of_id, depth, path) AS (
                 SELECT g1.id, g1.name, g1.id::bigint as part_of_id, 1::INT as depth, g1.id::TEXT as path
                 FROM subjects_subjects ss
-                LEFT JOIN subjects as g1 ON ss.part_of_id=g1.id
+                JOIN subjects as g1 ON ss.part_of_id=g1.id
                 WHERE ss.subject_id = :subject_id AND """+(datestr % {'ss': 'ss'})+"""
             UNION ALL
                 SELECT g2.id, g2.name, ss2.part_of_id, p.depth + 1 AS depth,
                     (p.path || '->' || g2.id ::TEXT)
-                FROM nodes_cte AS p
-                LEFT JOIN subjects_subjects AS ss2 ON ss2.subject_id=p.subject_id
-                LEFT JOIN subjects AS g2 ON ss2.part_of_id = g2.id
-                WHERE """+(datestr % {'ss': 'ss2'})+"""
+                FROM subjects_subjects ss2, subjects AS g2, nodes_cte AS p
+                WHERE ss2.part_of_id = g2.id AND ss2.subject_id = p.subject_id AND """+(datestr % {'ss': 'ss2'})+"""
             ) SELECT * FROM nodes_cte
         """).bindparams(subject_id=subject_id, from_date=from_date, to_date=to_date).columns(subject_id=Integer, name=String, part_of_id=Integer, depth=Integer, path=String).alias()
 
@@ -967,8 +966,7 @@ class Subject(ABase):
             UNION ALL
                 SELECT c.subject_id, g2.name, c.part_of_id, p.depth + 1 AS depth,
                     (p.path || '->' || g2.id ::TEXT)
-                FROM nodes_cte AS p, subjects_subjects AS c
-                JOIN subjects AS g2 ON g2.id=c.subject_id
+                FROM subjects_subjects c, subjects AS g2, nodes_cte AS p
                 WHERE c.part_of_id = p.subject_id AND """+(datestr % {'ss': 'c'})+"""
             ) SELECT * FROM nodes_cte
         """).bindparams(subject_id=subject_id, from_date=from_date, to_date=to_date).columns(subject_id=Integer, name=String, part_of_id=Integer, depth=Integer, path=String).alias()
@@ -1255,7 +1253,7 @@ class Achievement(ABase):
     def get_achievement(cls,achievement_id):
         achievement = rowproxy2dict(DBSession.execute(t_achievements.select().where(t_achievements.c.id == achievement_id)).fetchone())
         compared_subjecttypes = [x["id"] for x in DBSession.execute(t_achievement_compared_subjecttypes.select().where(t_achievement_compared_subjecttypes.c.achievement_id == achievement_id)).fetchall()]
-        domain_subjects = [x["id"] for x in DBSession.execute(t_achievement_compared_subjecttypes.select().where(t_achievement_compared_subjecttypes.c.achievement_id == achievement_id)).fetchall()]
+        domain_subjects = [x["id"] for x in DBSession.execute(t_achievement_domain_subjects.select().where(t_achievement_domain_subjects.c.achievement_id == achievement_id)).fetchall()]
 
         achievement['compared_subjecttypes'] = compared_subjecttypes
         achievement['domain_subjects'] = domain_subjects
@@ -1663,7 +1661,6 @@ class Achievement(ABase):
 
 
     @classmethod
-    @cache_general.cache_on_arguments()
     def get_rewards(cls, achievement_id, level):
         """return the new rewards which are given for the achievement level."""
 
@@ -1879,7 +1876,7 @@ class Achievement(ABase):
 
         exec_queue = {}
 
-        #When editing things here, check the insert_trigger_step_executions_after_step_upsert event listener too!!!!!!!
+        #When editing things here, check the insert_trigger_step_executions_after_step_upsert event listener too!!!!!!
         if len(trigger_steps) > 0:
             operator = achievement["operator"]
 
@@ -2391,13 +2388,3 @@ mapper(Task, t_tasks, properties={
 mapper(TaskExecution, t_taskexecutions, properties={
     'task': relationship(Task, backref="executions"),
 })
-
-#@event.listens_for(AchievementProperty, "after_insert")
-#@event.listens_for(AchievementProperty, 'after_update')
-#def insert_variable_for_property(mapper,connection,target):
-#    """when setting is_variable on a :class:`AchievementProperty` a variable is automatically created"""
-#    if target.is_variable and not exists_by_expr(t_variables, t_variables.c.name==target.name):
-#            variable = Variable()
-#            variable.name = target.name
-#            variable.group = "day"
-#            DBSession.add(variable)
