@@ -12,6 +12,7 @@ This document provides a detailed overview of all REST API endpoints in the gami
    - [Increase Multiple Values](#increase-multiple-values)
    - [Get Progress](#get-progress)
    - [Get Achievement Level](#get-achievement-level)
+   - [Achievement Goals and Level Progression](#achievement-goals-and-level-progression)
 3. [Authentication](#authentication)
    - [Login](#login)
    - [Change Password](#change-password)
@@ -40,6 +41,7 @@ Adds or updates a subject (user) in the gamification system.
 - `friends` (string, optional): Comma separated list of user IDs
 - `groups` (string, optional): Comma separated list of group IDs
 - `language` (string, optional): Language name
+- `name` (string, optional): The name of the subject
 - `additional_public_data` (JSON, optional): Additional public data
 
 **Response:**
@@ -266,6 +268,33 @@ Get information about the rewards and properties of a specific achievement level
   }
 }
 ```
+
+### Achievement Goals and Level Progression
+
+The gamification engine supports defining dynamic goals for different achievement levels. Rather than having the same goal value for all levels, you can define expressions that calculate the goal based on the current level.
+
+#### Goal Expressions
+
+Goals are defined as string expressions in the `goal` field of the achievement. You can use the `level` variable within expressions to create progressively more challenging goals for higher levels.
+
+**Example Goal Expressions:**
+
+1. **Linear Growth**: `"100 * level"`
+   - Level 1: Goal = 100
+   - Level 2: Goal = 200
+   - Level 3: Goal = 300
+
+2. **Exponential Growth**: `"100 * (1.5^level)"`
+   - Level 1: Goal = 100
+   - Level 2: Goal = 150
+   - Level 3: Goal = 225
+
+3. **Quadratic Growth**: `"100 * (level^2)"`
+   - Level 1: Goal = 100
+   - Level 2: Goal = 400
+   - Level 3: Goal = 900
+
+These expressions allow you to design achievement systems where advancing from lower levels is easier, while higher levels require progressively more effort.
 
 ## Authentication
 
