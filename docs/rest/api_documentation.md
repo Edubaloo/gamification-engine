@@ -41,15 +41,25 @@ Adds or updates a subject (user) in the gamification system.
 - `friends` (string, optional): Comma separated list of user IDs
 - `groups` (string, optional): Comma separated list of group IDs
 - `language` (string, optional): Language name
-- `name` (string, optional): The name of the subject
-- `subjecttype_id` (integer, optional): The ID of the subject type
-- `subjecttype` (string, optional): The name of the subject type (alternative to subjecttype_id)
+- `name` (string, optional): **The name of the subject**
+- `subjecttype_id` (integer, optional): **The ID of the subject type**
+- `subjecttype` (string, optional): **The name of the subject type (alternative to subjecttype_id)**
 - `additional_public_data` (JSON, optional): Additional public data
 
 **Response:**
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "subject": {
+    "id": 123,
+    "name": "Subject Name",
+    "subjecttype_id": 1,
+    "lat": 47.123,
+    "lng": 8.456,
+    "timezone": "Europe/Zurich",
+    "language_id": 1,
+    "additional_public_data": {}
+  }
 }
 ```
 
@@ -297,6 +307,87 @@ Goals are defined as string expressions in the `goal` field of the achievement. 
    - Level 3: Goal = 900
 
 These expressions allow you to design achievement systems where advancing from lower levels is easier, while higher levels require progressively more effort.
+
+## Implementation Notes
+
+This section provides details about the internal implementations of various API features.
+
+### Subject Relationships
+
+The gamification engine supports two types of subject relationships:
+
+1. **Direct Relations (via `set_relations`)**
+   - Used for friend-like relationships between subjects
+   - Stored in the `subjectrelations` table
+   - Creates directional relationships from one subject to others
+   - Accessed through the `friends` parameter in the Add or Update Subject API
+
+2. **Hierarchical Relations (via `set_parent_subjects`)**
+   - Used for organizational/group membership relationships
+   - Stored in the `subjects_subjects` table
+   - Creates parent-child relationships between subjects
+   - Accessed through the `groups` parameter in the Add or Update Subject API
+   - Time-sensitive: tracks when subjects joined and left groups
+
+### Subject Hierarchical Traversal
+
+The gamification engine provides powerful methods to traverse subject hierarchies:
+
+1. **get_ancestor_subjects**
+   - Retrieves all parent subjects of a given subject
+   - Can filter by subject type
+   - Supports date-based filtering (e.g., only subjects that were members during a specific period)
+   - Uses recursive SQL queries to efficiently traverse the hierarchy
+
+2. **get_descendent_subjects**
+   - Retrieves all child subjects of a given subject
+   - Can filter by subject type
+   - Supports the same date-based filtering as ancestor queries
+   - Also uses recursive SQL queries for efficiency
+
+These methods enable complex organizational structures and time-sensitive relationship tracking, which is essential for team-based achievements and organizational leaderboards.
+
+### Achievement Domain and Comparison Logic
+
+Achievements in the gamification engine can be constrained in two ways:
+
+1. **Compared Subject Types (achievement_compared_subjects)**
+   - Defines which subject types can be compared in leaderboards
+   - Used to enable comparisons at different levels (individual, team, region, etc.)
+
+2. **Domain Subjects (achievement_domain_subjects)**
+   - Restricts the validity of achievements to specific subjects
+   - For example, limiting an achievement to only be valid within a specific geographic region
+   - Uses actual subject instances rather than subject types
+
+The API uses these relationships to determine proper achievement context and leaderboard construction.
+
+## Developer Reference
+
+### Creating and Managing Subjects
+
+When creating or updating subjects, it's essential to understand how the system handles identifiers and relationships:
+
+#### Subject Creation Parameters
+
+- **ID**: Required unique identifier (typically from your application's user system)
+- **Name**: Optional friendly name for display purposes
+- **SubjectType**: Either by ID (`subjecttype_id`) or name (`subjecttype`), determines the category of the subject
+- **Location**: Optional lat/lng coordinates for geo-aware features
+- **Language**: Optional language preference for localization
+- **Timezone**: Used for time-aware features (defaults to UTC)
+- **Additional Data**: JSON structure for custom application data
+
+The `set_infos` method handles creating new subjects if they don't exist, making the Add or Update Subject API endpoint suitable for both creating and updating subjects.
+
+#### Subject Identification and Default Values
+
+When a subject is first created:
+- If no subjecttype is specified, it defaults to "User" type if available, otherwise type ID 1
+- Timezone defaults to UTC if not specified or invalid
+- Name can be set during creation or in subsequent updates
+
+The system is designed to gracefully handle missing information with sensible defaults while still allowing full customization when needed.
 
 ## Authentication
 
