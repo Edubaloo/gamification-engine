@@ -42,6 +42,8 @@ Adds or updates a subject (user) in the gamification system.
 - `groups` (string, optional): Comma separated list of group IDs
 - `language` (string, optional): Language name
 - `name` (string, optional): The name of the subject
+- `subjecttype_id` (integer, optional): The ID of the subject type
+- `subjecttype` (string, optional): The name of the subject type (alternative to subjecttype_id)
 - `additional_public_data` (JSON, optional): Additional public data
 
 **Response:**

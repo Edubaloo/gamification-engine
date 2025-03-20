@@ -828,15 +828,22 @@ class Subject(ABase):
         pass
 
     @classmethod
-    def set_infos(cls, subject_id, lat, lng, timezone, language_id, additional_public_data, subjecttype_id=1):
+    def set_infos(cls, subject_id, lat, lng, timezone, language_id, additional_public_data, name=None, subjecttype_id=None):
         """set the subject's metadata like friends,location and timezone"""
 
         # add or select subject
         subject = DBSession.query(Subject).filter_by(id=subject_id).first()
         if subject is None:
             # Create a new subject if it doesn't exist
+            if subjecttype_id is None:
+                # Default to User type if not specified and creating new subject
+                user_type = DBSession.query(SubjectType).filter_by(name="User").first()
+                subjecttype_id = user_type.id if user_type else 1
+            
             subject = Subject(id=subject_id, subjecttype_id=subjecttype_id)
         
+        if name is not None:
+            subject.name = name
         subject.lat = lat
         subject.lng = lng
         subject.timezone = timezone

@@ -4,7 +4,7 @@ jQuery().ready(function($) {
     var fields=["subjectid","variable","value","key","achievementid","level",
                 "lat","lon","friends","groups","timezone","country","region","city",
                 "email","password","device_id","push_id","device_os","app_version",
-                "offset","message_id","additional_public_data","language"];
+                "offset","message_id","additional_public_data","language","name","subjecttype_id","subjecttype"];
     
     var api_funcs = {
         "progress" : {
@@ -19,10 +19,10 @@ jQuery().ready(function($) {
             "postparams":["value"]
         },
         "add_or_update_subject" : {
-            "fields":["subjectid","lat","lon","friends","groups","timezone","country","region","city","additional_public_data","language"],
+            "fields":["subjectid","lat","lon","friends","groups","timezone","country","region","city","additional_public_data","language","name","subjecttype_id","subjecttype"],
             "url":"/add_or_update_subject/{subjectid}",
             "method":"POST",
-            "postparams":["lat","lon","friends","groups","timezone","country","region","city","additional_public_data","language"]
+            "postparams":["lat","lon","friends","groups","timezone","country","region","city","additional_public_data","language","name","subjecttype_id","subjecttype"]
         },
         "delete_subject" : {
             "fields":["subjectid"],

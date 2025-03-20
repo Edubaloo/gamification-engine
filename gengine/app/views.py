@@ -36,7 +36,8 @@ from gengine.app.model import (
     Variable,
     AuthUser, AuthToken, t_subjects, t_auth_users, t_auth_users_roles, t_auth_roles, t_auth_roles_permissions,
     SubjectDevice,
-    t_subject_device, t_subject_messages, SubjectMessage, AchievementDate)
+    t_subject_device, t_subject_messages, SubjectMessage, AchievementDate, SubjectType
+)
 from gengine.base.settings import get_settings
 from gengine.base.util import dt_now
 from gengine.metadata import DBSession
@@ -92,13 +93,28 @@ def add_or_update_subject(request):
         except:
             additional_public_data = {}
 
+    name = None
+    if len(request.POST.get("name", "")) > 0:
+        name = request.POST["name"]
+
+    subjecttype_id = None
+    if len(request.POST.get("subjecttype_id", "")) > 0:
+        subjecttype_id = int(request.POST["subjecttype_id"])
+    elif len(request.POST.get("subjecttype", "")) > 0:
+        # Look up subjecttype ID by name
+        subjecttype_name = request.POST["subjecttype"]
+        subjecttype = DBSession.query(SubjectType).filter_by(name=subjecttype_name).first()
+        if subjecttype:
+            subjecttype_id = subjecttype.id
 
     Subject.set_infos(subject_id=subject_id,
                    lat=lat,
                    lng=lon,
                    timezone=timezone,
                    language_id=language,
-                   additional_public_data = additional_public_data)
+                   additional_public_data=additional_public_data,
+                   name=name,
+                   subjecttype_id=subjecttype_id)
 
     Subject.set_relations(subject_id=subject_id, relation_ids=friends)
     Subject.set_parent_subjects(subject_id=subject_id, parent_subject_ids=groups)
