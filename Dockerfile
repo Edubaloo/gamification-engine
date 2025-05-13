@@ -14,7 +14,6 @@ COPY optional-requirements.txt ./
 COPY docker-files/* ./
 RUN cat optional-requirements.txt >> requirements.txt && pip3 install -r requirements.txt
 COPY . .
-
 RUN pip3 install -e . && touch /tmp/nginx.socket
 RUN chown -R gengine:gengine /usr/src/app
 CMD [ "/bin/sh", "/usr/src/app/init.sh" ]
