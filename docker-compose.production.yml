@@ -29,7 +29,7 @@ services:
     depends_on:
       - python
     volumes:
-      - ./docker-files/nginx-prod.conf:/etc/nginx/nginx.conf
+      - ./docker-files/nginx-prod.conf:/etc/nginx/conf.d/default.conf
       - uwsgi_socket:/run/uwsgi/
     ports:
       - 9000:80
